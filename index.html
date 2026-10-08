@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="es" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logística Herrgott - Calculadora de Embolsates</title>
+    <link rel="icon" type="image/png" href="LH.png">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        themeBg: {
+                            light: '#f1f5f9',
+                            dark: '#1e293b'
+                        },
+                        themeCard: {
+                            light: '#ffffff',
+                            dark: '#334155'
+                        },
+                        themeBorder: {
+                            light: '#e2e8f0',
+                            dark: '#475569'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .blend-multiply {
+            mix-blend-mode: multiply;
+        }
+        .dark .blend-multiply {
+            mix-blend-mode: screen;
+            filter: invert(1);
+        }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 min-h-screen font-sans flex flex-col justify-between transition-colors duration-200">
+
+    <!-- Encabezado / Header -->
+    <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shadow-sm sticky top-0 z-30 transition-colors duration-200">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-4">
+                <!-- Logo LH -->
+                <div class="bg-transparent p-1 rounded-lg flex items-center justify-center">
+                    <img src="LH.png" alt="Logística Herrgott" class="h-14 md:h-16 w-auto object-contain blend-multiply" onerror="this.onerror=null; this.src='herrgott.png';">
+                </div>
+                <div class="border-l-2 border-slate-300 dark:border-slate-600 pl-4">
+                    <h1 class="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight">LOGÍSTICA HERRGOTT</h1>
+                    <p class="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">Calculadora de Embolsates y Armado de Pedidos</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <!-- Botón Dark Mode -->
+                <button onclick="toggleDarkMode()" id="themeToggleBtn" class="p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 transition-colors" title="Cambiar Tema">
+                    <i data-lucide="moon" id="themeIcon" class="w-5 h-5"></i>
+                </button>
+
+                <!-- Botón Gestionar Productos -->
+                <button onclick="toggleModal('productModal')" class="flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors shadow-sm">
+                    <i data-lucide="settings" class="w-4 h-4"></i>
+                    <span>Gestionar Productos</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="max-w-6xl mx-auto px-4 py-6 w-full grow space-y-6">
+
+        <!-- PASO 1: Ingreso de Cupo Global de Bolsitas -->
+        <div class="bg-white dark:bg-slate-700 rounded-xl shadow-sm border border-slate-200 dark:border-slate-600 p-5 transition-colors duration-200">
+            <div class="flex items-center space-x-3 mb-3">
+                <div class="p-2 bg-slate-900 dark:bg-slate-800 text-white rounded-lg">
+                    <i data-lucide="package-check" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white">Paso 1: Cupo Total de Bolsitas del Pedido</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-300">Ingresá la cantidad global de bolsitas requeridas para esta orden</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider mb-1">Total Bolsitas Pedidas:</label>
+                    <input type="number" id="globalBagQuota" min="0" placeholder="Ej: 30" oninput="updateQuotaDisplay()" class="w-full text-lg font-bold px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-400 outline-none">
+                </div>
+                
+                <div class="md:col-span-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg p-3 flex flex-col justify-center">
+                    <div class="flex justify-between items-center text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
+                        <span>Bolsitas Asignadas en Pedido:</span>
+                        <span id="quotaCounterText" class="font-bold text-slate-900 dark:text-white">0 / 0 bolsitas</span>
+                    </div>
+                    <div class="w-full bg-slate-200 dark:bg-slate-600 h-3 rounded-full overflow-hidden">
+                        <div id="quotaProgressBar" class="bg-slate-900 dark:bg-slate-300 h-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p id="quotaWarning" class="text-xs text-amber-600 dark:text-amber-400 font-semibold mt-1 hidden">⚠️ Las bolsitas asignadas difieren del cupo establecido.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- PASO 2 y 3: Calculadora y Resumen -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- PASO 2: Calculadora de Productos -->
+            <div class="lg:col-span-7 bg-white dark:bg-slate-700 rounded-xl shadow-sm border border-slate-200 dark:border-slate-600 p-5 space-y-4 transition-colors duration-200">
+                <div class="flex items-center space-x-3 border-b border-slate-100 dark:border-slate-600 pb-3">
+                    <div class="p-2 bg-slate-900 dark:bg-slate-800 text-white rounded-lg">
+                        <i data-lucide="calculator" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-white">Paso 2: Calcular Embolsate</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-300">Seleccioná un caramelo e ingresá las unidades totales</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider mb-1">Seleccionar Caramelo / Producto:</label>
+                        <select id="productSelect" onchange="calculate()" class="w-full text-base font-medium px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-slate-900 outline-none">
+                            <!-- Opciones dinámicas -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider mb-1">Cantidad Total de Unidades Requeridas:</label>
+                        <input type="number" id="unitsRequired" min="0" placeholder="Ej: 1910" oninput="calculate()" class="w-full text-xl font-bold px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-slate-900 outline-none">
+                    </div>
+
+                    <!-- Panel de Resultados del Cálculo Instantáneo -->
+                    <div id="calcResults" class="hidden space-y-3 pt-2">
+                        <div class="bg-slate-900 dark:bg-slate-800 text-white p-4 rounded-xl space-y-3 border border-slate-800 dark:border-slate-600">
+                            <div class="text-xs uppercase font-semibold text-slate-400 border-b border-slate-800 dark:border-slate-700 pb-1">Desglose de Despacho Optimizado</div>
+                            <div class="grid grid-cols-2 gap-3 text-center">
+                                <div class="bg-slate-800/80 dark:bg-slate-700/80 p-3 rounded-lg border border-slate-700 dark:border-slate-600">
+                                    <span class="block text-xs text-slate-400 dark:text-slate-300">Displays / Cajas</span>
+                                    <span id="resDisplays" class="text-2xl font-black text-amber-400">0</span>
+                                    <span id="resDisplaysUnits" class="block text-xs text-slate-300 dark:text-slate-400 mt-0.5">0 unidades</span>
+                                </div>
+                                <div class="bg-slate-800/80 dark:bg-slate-700/80 p-3 rounded-lg border border-slate-700 dark:border-slate-600">
+                                    <span class="block text-xs text-slate-400 dark:text-slate-300">Bolsitas Embolsate</span>
+                                    <span id="resBags" class="text-2xl font-black text-emerald-400">0</span>
+                                    <span id="resBagsUnits" class="block text-xs text-slate-300 dark:text-slate-400 mt-0.5">0 unidades</span>
+                                </div>
+                            </div>
+                            <div class="flex justify-between text-xs text-slate-300 pt-1 border-t border-slate-800 dark:border-slate-700">
+                                <span>Total Unidades Calculadas:</span>
+                                <span id="resTotalUnits" class="font-bold text-white">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Advertencia si no da un valor exacto -->
+                        <div id="approxNotice" class="hidden bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 p-3 rounded-lg text-xs space-y-1">
+                            <div class="font-bold flex items-center space-x-1">
+                                <i data-lucide="info" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
+                                <span>Aproximación Sugerida:</span>
+                            </div>
+                            <p id="approxText"></p>
+                        </div>
+
+                        <button onclick="addToOrder()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg flex items-center justify-center space-x-2 transition-colors shadow-sm">
+                            <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                            <span>Agregar al Resumen del Pedido</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PASO 3: Resumen Consolidado del Pedido -->
+            <div class="lg:col-span-5 bg-white dark:bg-slate-700 rounded-xl shadow-sm border border-slate-200 dark:border-slate-600 p-5 flex flex-col justify-between transition-colors duration-200">
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-600 pb-3">
+                        <div class="flex items-center space-x-3">
+                            <div class="p-2 bg-slate-900 dark:bg-slate-800 text-white rounded-lg">
+                                <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-lg font-bold text-slate-900 dark:text-white">Resumen del Pedido</h2>
+                                <p class="text-xs text-slate-500 dark:text-slate-300">Lista consolidada para depósito</p>
+                            </div>
+                        </div>
+                        <button onclick="clearOrder()" class="text-xs text-red-600 dark:text-red-400 hover:text-red-800 font-semibold flex items-center space-x-1">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            <span>Vaciar</span>
+                        </button>
+                    </div>
+
+                    <!-- Lista de Ítems Agregados -->
+                    <div id="orderList" class="space-y-2 min-h-[160px] max-h-[300px] overflow-y-auto pr-1">
+                        <p id="emptyOrderText" class="text-center text-slate-400 dark:text-slate-400 text-sm py-10">No hay productos agregados al pedido.</p>
+                    </div>
+                </div>
+
+                <!-- Totales Consolidados -->
+                <div class="border-t border-slate-200 dark:border-slate-600 pt-4 mt-4 space-y-3">
+                    <div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg space-y-1.5 text-xs border border-slate-200 dark:border-slate-600">
+                        <div class="flex justify-between text-slate-600 dark:text-slate-300">
+                            <span>Total Displays / Cajas:</span>
+                            <span id="summaryTotalDisplays" class="font-bold text-slate-900 dark:text-white">0</span>
+                        </div>
+                        <div class="flex justify-between text-slate-600 dark:text-slate-300">
+                            <span>Total Bolsitas (Embolsate):</span>
+                            <span id="summaryTotalBags" class="font-bold text-emerald-600 dark:text-emerald-400">0</span>
+                        </div>
+                        <div class="flex justify-between text-slate-600 dark:text-slate-300 pt-1 border-t border-slate-200 dark:border-slate-700 font-medium">
+                            <span>Total Unidades Pedido:</span>
+                            <span id="summaryTotalUnits" class="font-bold text-slate-900 dark:text-white">0 u.</span>
+                        </div>
+                    </div>
+
+                    <button onclick="copyOrderSummary()" class="w-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-900 text-white text-sm font-semibold py-2.5 rounded-lg flex items-center justify-center space-x-2 transition-colors border border-transparent dark:border-slate-600">
+                        <i data-lucide="copy" class="w-4 h-4"></i>
+                        <span>Copiar Resumen para Depósito</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Modal de Gestión de Productos -->
+    <div id="productModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-xl w-full shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-slate-900 dark:bg-slate-900 text-white px-6 py-4 flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="boxes" class="w-5 h-5 text-amber-400"></i>
+                    <h3 class="font-bold text-lg">Catálogo de Productos</h3>
+                </div>
+                <button onclick="toggleModal('productModal')" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto space-y-6">
+                <!-- Formulario Agregar / Editar -->
+                <form id="productForm" onsubmit="saveProduct(event)" class="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl border border-slate-200 dark:border-slate-600 space-y-3">
+                    <h4 id="formTitle" class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Agregar Nuevo Producto</h4>
+                    <input type="hidden" id="editIndex" value="-1">
+                    
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Nombre del Caramelo / Producto:</label>
+                        <input type="text" id="prodName" required placeholder="Ej: Caramelo Miel Extra" class="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-slate-900 outline-none">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Unidades por Display:</label>
+                            <input type="number" id="prodDisplay" required min="1" placeholder="135" class="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-slate-900 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Unidades por Embolsate:</label>
+                            <input type="number" id="prodBag" required min="1" placeholder="16" class="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-slate-900 outline-none">
+                        </div>
+                    </div>
+
+                    <div class="flex space-x-2 pt-2">
+                        <button type="submit" class="flex-1 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-900 text-white font-semibold py-2 rounded-lg text-sm transition-colors border border-transparent dark:border-slate-600">Guardar Producto</button>
+                        <button type="button" onclick="resetForm()" class="bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-slate-700 dark:text-slate-200 font-semibold px-4 py-2 rounded-lg text-sm transition-colors">Cancelar</button>
+                    </div>
+                </form>
+
+                <!-- Tabla / Lista de Productos Existentes -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Productos Registrados</h4>
+                        <button onclick="resetDefaultProducts()" class="text-xs text-amber-600 dark:text-amber-400 hover:text-amber-800 font-semibold">Restablecer Iniciales</button>
+                    </div>
+                    <div id="productListModal" class="space-y-2">
+                        <!-- Lista dinámica -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pie de página -->
+    <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-3 text-center text-xs text-slate-500 dark:text-slate-400 transition-colors duration-200">
+        Logística Herrgott 2026 - Sistema de Control y Operación de Depósito &copy; Ismael Sanchez DEV
+    </footer>
+
+    <!-- LÓGICA JAVASCRIPT -->
+    <script>
+        // Control de Tema (Dark Mode)
+        function initTheme() {
+            const savedTheme = localStorage.getItem('herrgott_theme');
+            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                updateThemeIcon(true);
+            } else {
+                document.documentElement.classList.remove('dark');
+                updateThemeIcon(false);
+            }
+        }
+
+        function toggleDarkMode() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('herrgott_theme', isDark ? 'dark' : 'light');
+            updateThemeIcon(isDark);
+        }
+
+        function updateThemeIcon(isDark) {
+            const icon = document.getElementById('themeIcon');
+            if (icon) {
+                icon.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+                lucide.createIcons();
+            }
+        }
+
+        // Catálogo por defecto
+        const defaultProducts = [
+            { name: 'Caramelo Masticable', display: 242, bag: 35 },
+            { name: 'Menta Cristal', display: 180, bag: 15 },
+            { name: 'Caramelo de Miel', display: 135, bag: 16 }
+        ];
+
+        let products = [];
+        let orderItems = [];
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            loadProducts();
+            lucide.createIcons();
+        });
+
+        // Cargar productos desde LocalStorage
+        function loadProducts() {
+            const saved = localStorage.getItem('herrgott_products');
+            if (saved) {
+                products = JSON.parse(saved);
+            } else {
+                products = [...defaultProducts];
+                saveProductsToStorage();
+            }
+            renderProductOptions();
+            renderModalProductList();
+        }
+
+        function saveProductsToStorage() {
+            localStorage.setItem('herrgott_products', JSON.stringify(products));
+        }
+
+        function renderProductOptions() {
+            const select = document.getElementById('productSelect');
+            select.innerHTML = '';
+            products.forEach((p, index) => {
+                const opt = document.createElement('option');
+                opt.value = index;
+                opt.textContent = `${p.name} (Display: ${p.display} u. | Embolsate: ${p.bag} u.)`;
+                select.appendChild(opt);
+            });
+            calculate();
+        }
+
+        function renderModalProductList() {
+            const container = document.getElementById('productListModal');
+            container.innerHTML = '';
+
+            products.forEach((p, index) => {
+                const item = document.createElement('div');
+                item.className = 'flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg text-sm';
+                item.innerHTML = `
+                    <div>
+                        <span class="font-bold text-slate-900 dark:text-white">${p.name}</span>
+                        <div class="text-xs text-slate-500 dark:text-slate-300">Display: ${p.display} u. | Embolsate: ${p.bag} u.</div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="editProduct(${index})" class="p-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-md">
+                            <i data-lucide="pencil" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="deleteProduct(${index})" class="p-1.5 text-red-600 dark:text-red-400 hover:text-red-800 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md">
+                            <i data-lucide="trash" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+            lucide.createIcons();
+        }
+
+        // Algoritmo Optimizado de Cálculo
+        let currentCalcResult = null;
+
+        function calculate() {
+            const prodIndex = document.getElementById('productSelect').value;
+            const unitsReq = parseInt(document.getElementById('unitsRequired').value);
+            const resultsDiv = document.getElementById('calcResults');
+
+            if (isNaN(unitsReq) || unitsReq <= 0 || !products[prodIndex]) {
+                resultsDiv.classList.add('hidden');
+                currentCalcResult = null;
+                return;
+            }
+
+            const p = products[prodIndex];
+            const displayCap = p.display;
+            const bagCap = p.bag;
+
+            // Algoritmo: Buscar combinación exacta o mejor distribución
+            let maxDisplays = Math.floor(unitsReq / displayCap);
+            let bestDisplays = 0;
+            let bestBags = 0;
+            let bestDiff = Infinity;
+            let exactFound = false;
+
+            for (let d = maxDisplays; d >= 0; d--) {
+                let rem = unitsReq - (d * displayCap);
+                if (rem % bagCap === 0) {
+                    bestDisplays = d;
+                    bestBags = rem / bagCap;
+                    exactFound = true;
+                    break;
+                } else {
+                    let bags = Math.round(rem / bagCap);
+                    let total = (d * displayCap) + (bags * bagCap);
+                    let diff = Math.abs(unitsReq - total);
+                    if (diff < bestDiff) {
+                        bestDiff = diff;
+                        bestDisplays = d;
+                        bestBags = bags;
+                    }
+                }
+            }
+
+            const calculatedTotal = (bestDisplays * displayCap) + (bestBags * bagCap);
+
+            document.getElementById('resDisplays').textContent = bestDisplays;
+            document.getElementById('resDisplaysUnits').textContent = `${bestDisplays * displayCap} u.`;
+            document.getElementById('resBags').textContent = bestBags;
+            document.getElementById('resBagsUnits').textContent = `${bestBags * bagCap} u.`;
+            document.getElementById('resTotalUnits').textContent = `${calculatedTotal} u.`;
+
+            const approxNotice = document.getElementById('approxNotice');
+            if (!exactFound) {
+                const bagsCeil = Math.ceil((unitsReq - (bestDisplays * displayCap)) / bagCap);
+                const ceilTotal = (bestDisplays * displayCap) + (bagsCeil * bagCap);
+
+                document.getElementById('approxText').innerHTML = 
+                    `No hay combinación exacta para <strong>${unitsReq} u.</strong><br>` +
+                    `• Opción exacta más cercana: <strong>${bestDisplays} disp. + ${bestBags} bols. = ${calculatedTotal} u.</strong><br>` +
+                    `• Opción recomendada para cubrir 100%: <strong>${bestDisplays} disp. + ${bagsCeil} bols. = ${ceilTotal} u.</strong>`;
+                approxNotice.classList.remove('hidden');
+            } else {
+                approxNotice.classList.add('hidden');
+            }
+
+            currentCalcResult = {
+                productName: p.name,
+                displays: bestDisplays,
+                bags: bestBags,
+                displayUnits: bestDisplays * displayCap,
+                bagUnits: bestBags * bagCap,
+                totalUnits: calculatedTotal,
+                requestedUnits: unitsReq
+            };
+
+            resultsDiv.classList.remove('hidden');
+        }
+
+        // Gestión de Pedidos y Cupo
+        function updateQuotaDisplay() {
+            const quotaInput = parseInt(document.getElementById('globalBagQuota').value) || 0;
+            const currentBags = orderItems.reduce((acc, item) => acc + item.bags, 0);
+
+            document.getElementById('quotaCounterText').textContent = `${currentBags} / ${quotaInput} bolsitas`;
+
+            const warning = document.getElementById('quotaWarning');
+            const bar = document.getElementById('quotaProgressBar');
+
+            if (quotaInput > 0) {
+                const percentage = Math.min(100, Math.round((currentBags / quotaInput) * 100));
+                bar.style.width = `${percentage}%`;
+
+                if (currentBags !== quotaInput) {
+                    warning.classList.remove('hidden');
+                    if (currentBags > quotaInput) {
+                        warning.textContent = `⚠️ Te pasaste por ${currentBags - quotaInput} bolsitas del cupo fijado.`;
+                        bar.className = 'bg-red-500 h-full transition-all duration-300';
+                    } else {
+                        warning.textContent = `⚠️ Faltan asignarle ${quotaInput - currentBags} bolsitas al pedido.`;
+                        bar.className = 'bg-amber-500 h-full transition-all duration-300';
+                    }
+                } else {
+                    warning.classList.add('hidden');
+                    bar.className = 'bg-emerald-500 h-full transition-all duration-300';
+                }
+            } else {
+                bar.style.width = '0%';
+                warning.classList.add('hidden');
+            }
+        }
+
+        function addToOrder() {
+            if (!currentCalcResult) return;
+
+            orderItems.push({ ...currentCalcResult });
+            renderOrderSummary();
+            
+            document.getElementById('unitsRequired').value = '';
+            document.getElementById('calcResults').classList.add('hidden');
+            currentCalcResult = null;
+        }
+
+        function removeOrderItem(index) {
+            orderItems.splice(index, 1);
+            renderOrderSummary();
+        }
+
+        function clearOrder() {
+            orderItems = [];
+            renderOrderSummary();
+        }
+
+        function renderOrderSummary() {
+            const container = document.getElementById('orderList');
+            const emptyText = document.getElementById('emptyOrderText');
+
+            if (orderItems.length === 0) {
+                emptyText.classList.remove('hidden');
+                container.innerHTML = '';
+                container.appendChild(emptyText);
+            } else {
+                emptyText.classList.add('hidden');
+                container.innerHTML = '';
+
+                orderItems.forEach((item, index) => {
+                    const row = document.createElement('div');
+                    row.className = 'bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg p-3 flex justify-between items-center text-xs';
+                    row.innerHTML = `
+                        <div>
+                            <div class="font-bold text-slate-900 dark:text-white text-sm">${item.productName}</div>
+                            <div class="text-slate-600 dark:text-slate-300 mt-0.5">
+                                <span class="font-semibold text-amber-700 dark:text-amber-400">${item.displays} Displays</span> + 
+                                <span class="font-semibold text-emerald-700 dark:text-emerald-400">${item.bags} Bolsitas</span> 
+                                (${item.totalUnits} u.)
+                            </div>
+                        </div>
+                        <button onclick="removeOrderItem(${index})" class="text-red-500 hover:text-red-700 p-1">
+                            <i data-lucide="x-circle" class="w-4 h-4"></i>
+                        </button>
+                    `;
+                    container.appendChild(row);
+                });
+            }
+
+            const totalDisplays = orderItems.reduce((acc, i) => acc + i.displays, 0);
+            const totalBags = orderItems.reduce((acc, i) => acc + i.bags, 0);
+            const totalUnits = orderItems.reduce((acc, i) => acc + i.totalUnits, 0);
+
+            document.getElementById('summaryTotalDisplays').textContent = totalDisplays;
+            document.getElementById('summaryTotalBags').textContent = `${totalBags} bolsitas`;
+            document.getElementById('summaryTotalUnits').textContent = `${totalUnits} u.`;
+
+            updateQuotaDisplay();
+            lucide.createIcons();
+        }
+
+        function copyOrderSummary() {
+            if (orderItems.length === 0) {
+                alert('No hay ítems en el pedido para copiar.');
+                return;
+            }
+
+            let text = `📦 *RESUMEN DE PEDIDO - LOGÍSTICA HERRGOTT*\n`;
+            text += `----------------------------------------\n`;
+            orderItems.forEach(i => {
+                text += `• *${i.productName}*: ${i.displays} Displays | ${i.bags} Bolsitas (${i.totalUnits} u.)\n`;
+            });
+            text += `----------------------------------------\n`;
+            text += `TOTAL DISPLAYS: ${document.getElementById('summaryTotalDisplays').textContent}\n`;
+            text += `TOTAL BOLSITAS: ${document.getElementById('summaryTotalBags').textContent}\n`;
+            text += `TOTAL UNIDADES: ${document.getElementById('summaryTotalUnits').textContent}\n`;
+
+            navigator.clipboard.writeText(text).then(() => {
+                alert('¡Resumen de pedido copiado al portapapeles!');
+            });
+        }
+
+        // Gestión del Modal de Productos
+        function toggleModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.toggle('hidden');
+        }
+
+        function saveProduct(e) {
+            e.preventDefault();
+            const name = document.getElementById('prodName').value.trim();
+            const display = parseInt(document.getElementById('prodDisplay').value);
+            const bag = parseInt(document.getElementById('prodBag').value);
+            const editIndex = parseInt(document.getElementById('editIndex').value);
+
+            if (editIndex >= 0) {
+                products[editIndex] = { name, display, bag };
+            } else {
+                products.push({ name, display, bag });
+            }
+
+            saveProductsToStorage();
+            renderProductOptions();
+            renderModalProductList();
+            resetForm();
+        }
+
+        function editProduct(index) {
+            const p = products[index];
+            document.getElementById('prodName').value = p.name;
+            document.getElementById('prodDisplay').value = p.display;
+            document.getElementById('prodBag').value = p.bag;
+            document.getElementById('editIndex').value = index;
+            document.getElementById('formTitle').textContent = 'Editar Producto';
+        }
+
+        function deleteProduct(index) {
+            if (confirm(`¿Eliminar ${products[index].name} del catálogo?`)) {
+                products.splice(index, 1);
+                saveProductsToStorage();
+                renderProductOptions();
+                renderModalProductList();
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('productForm').reset();
+            document.getElementById('editIndex').value = '-1';
+            document.getElementById('formTitle').textContent = 'Agregar Nuevo Producto';
+        }
+
+        function resetDefaultProducts() {
+            if (confirm('¿Restablecer el catálogo inicial con Masticables, Menta Cristal y Miel?')) {
+                products = [...defaultProducts];
+                saveProductsToStorage();
+                renderProductOptions();
+                renderModalProductList();
+            }
+        }
+    </script>
+</body>
+</html>
